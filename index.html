@@ -1,0 +1,181 @@
+<html><head><base href="https://flappydog.example.com/">
+<title>Flappy Dog</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+    font-family: Arial, sans-serif;
+  }
+  #gameCanvas {
+    border: 2px solid #000;
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const dog = {
+  x: 50,
+  y: 300,
+  width: 40,
+  height: 30,
+  velocity: 0,
+  gravity: 0.5,
+  jump: -8
+};
+
+let pipes = [];
+let score = 0;
+let gameOver = false;
+
+function drawDog() {
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(dog.x, dog.y, dog.width, dog.height);
+  
+  // Draw ears
+  ctx.beginPath();
+  ctx.moveTo(dog.x, dog.y);
+  ctx.lineTo(dog.x - 10, dog.y - 15);
+  ctx.lineTo(dog.x + 10, dog.y);
+  ctx.fill();
+  
+  // Draw tail
+  ctx.beginPath();
+  ctx.moveTo(dog.x + dog.width, dog.y + dog.height / 2);
+  ctx.quadraticCurveTo(dog.x + dog.width + 20, dog.y + dog.height / 2 - 20, dog.x + dog.width + 15, dog.y + dog.height / 2 + 10);
+  ctx.stroke();
+}
+
+function createPipe() {
+  const gap = 150;
+  const pipeWidth = 50;
+  const minHeight = 50;
+  const maxHeight = canvas.height - gap - minHeight;
+  const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+  
+  pipes.push({
+    x: canvas.width,
+    y: 0,
+    width: pipeWidth,
+    height: topHeight,
+    passed: false
+  });
+  
+  pipes.push({
+    x: canvas.width,
+    y: topHeight + gap,
+    width: pipeWidth,
+    height: canvas.height - topHeight - gap,
+    passed: false
+  });
+}
+
+function drawPipes() {
+  ctx.fillStyle = '#00A86B';
+  pipes.forEach(pipe => {
+    ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
+  });
+}
+
+function movePipes() {
+  pipes.forEach(pipe => {
+    pipe.x -= 2;
+  });
+  
+  if (pipes.length > 0 && pipes[0].x + pipes[0].width < 0) {
+    pipes.shift();
+    pipes.shift();
+    score++;
+  }
+  
+  if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+    createPipe();
+  }
+}
+
+function checkCollision() {
+  for (let i = 0; i < pipes.length; i++) {
+    if (
+      dog.x < pipes[i].x + pipes[i].width &&
+      dog.x + dog.width > pipes[i].x &&
+      dog.y < pipes[i].y + pipes[i].height &&
+      dog.y + dog.height > pipes[i].y
+    ) {
+      gameOver = true;
+    }
+  }
+  
+  if (dog.y + dog.height > canvas.height || dog.y < 0) {
+    gameOver = true;
+  }
+}
+
+function drawScore() {
+  ctx.fillStyle = '#000';
+  ctx.font = '24px Arial';
+  ctx.fillText(`Score: ${score}`, 10, 30);
+}
+
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.fillStyle = '#fff';
+  ctx.font = '48px Arial';
+  ctx.fillText('Game Over', canvas.width / 2 - 100, canvas.height / 2 - 24);
+  ctx.font = '24px Arial';
+  ctx.fillText(`Score: ${score}`, canvas.width / 2 - 40, canvas.height / 2 + 24);
+  ctx.fillText('Click to restart', canvas.width / 2 - 70, canvas.height / 2 + 64);
+}
+
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  if (!gameOver) {
+    dog.velocity += dog.gravity;
+    dog.y += dog.velocity;
+    
+    drawDog();
+    drawPipes();
+    movePipes();
+    checkCollision();
+    drawScore();
+    
+    requestAnimationFrame(gameLoop);
+  } else {
+    drawGameOver();
+  }
+}
+
+function restartGame() {
+  dog.y = 300;
+  dog.velocity = 0;
+  pipes = [];
+  score = 0;
+  gameOver = false;
+  createPipe();
+  gameLoop();
+}
+
+canvas.addEventListener('click', () => {
+  if (gameOver) {
+    restartGame();
+  } else {
+    dog.velocity = dog.jump;
+  }
+});
+
+createPipe();
+gameLoop();
+</script>
+</body>
+</html>
